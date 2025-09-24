@@ -483,8 +483,12 @@ try {
               
               console.log('Iniciando WhatsApp...');
 
-              const response = await fetch('http://34.30.42.255:3000/start-whatsapp', {
-                  method: 'POST'
+              const response = await fetch('https://34.30.42.255:3000/start-whatsapp', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Access-Control-Allow-Origin': '*'
+                  }
               });
               
               const result = await response.json();
@@ -510,7 +514,12 @@ try {
           if (!checkingQR) return;
           
           try {
-              const response = await fetch('http://34.30.42.255:3000/get-qr');
+             const response = await fetch('https://34.30.42.255:3000/get-qr', {
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Access-Control-Allow-Origin': '*'
+                  }
+              });
               const data = await response.json();
               
               console.log('Estado actual:', data);
@@ -559,8 +568,12 @@ try {
           try {
               checkingQR = false;
 
-              const response = await fetch('http://34.30.42.255:3000/stop-whatsapp', {
-                  method: 'POST'
+              const response = await fetch('https://34.30.42.255:3000/stop-whatsapp', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Access-Control-Allow-Origin': '*'
+                  }
               });
               
               $('#whatsappModal').modal('hide');
