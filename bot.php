@@ -483,7 +483,7 @@ try {
               
               console.log('Iniciando WhatsApp...');
 
-              const response = await fetch('conexion/whatsapp_proxy.php?action=start', {
+              const response = await fetch('conexion/conexion/whatsapp_proxy.php?action=start', {
                   method: 'POST'
               });
 
@@ -511,7 +511,7 @@ try {
           if (!checkingQR) return;
           
           try {
-              const response = await fetch('whatsapp_proxy.php?action=status');
+              const response = await fetch('conexion/whatsapp_proxy.php?action=status');
 
               const data = await response.json();
               
@@ -561,7 +561,7 @@ try {
           try {
               checkingQR = false;
 
-              const response = await fetch('whatsapp_proxy.php?action=stop', {
+              const response = await fetch('conexion/whatsapp_proxy.php?action=stop', {
                   method: 'POST'
               });
               
