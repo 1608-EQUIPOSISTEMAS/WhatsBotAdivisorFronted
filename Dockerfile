@@ -1,26 +1,23 @@
-FROM ghcr.io/library/ubuntu:22.04
+# Usar imagen oficial de PHP con Apache
+FROM php:8.2-apache
 
-# Evitar preguntas durante la instalación
-ENV DEBIAN_FRONTEND=noninteractive
+# Instalar extensiones de PHP necesarias (ajusta según tu proyecto)
+RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-# Actualizar e instalar dependencias
-RUN apt-get update && apt-get install -y \
-    apache2 \
-    php8.1 \
-    php8.1-mysql \
-    php8.1-mysqli \
-    php8.1-pdo \
-    libapache2-mod-php8.1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# El resto igual...
+# Habilitar mod_rewrite para Apache
 RUN a2enmod rewrite
-RUN a2enmod php8.1
+
+# Establecer el directorio de trabajo
 WORKDIR /var/www/html
+
+# Copiar todos los archivos del proyecto
 COPY . .
+
+# Establecer permisos correctos
 RUN chown -R www-data:www-data /var/www/html
 RUN chmod -R 755 /var/www/html
 
+# Configurar Apache para servir desde el directorio raíz
 RUN echo '<Directory /var/www/html>\n\
     Options Indexes FollowSymLinks\n\
     AllowOverride All\n\
@@ -28,5 +25,9 @@ RUN echo '<Directory /var/www/html>\n\
 </Directory>' > /etc/apache2/conf-available/project.conf
 
 RUN a2enconf project
+
+# Exponer el puerto 80 (Render usará el puerto que especifiques)
 EXPOSE 80
-CMD ["apache2ctl", "-D", "FOREGROUND"]
+
+# Comando para iniciar Apache
+CMD ["apache2-foreground"]
