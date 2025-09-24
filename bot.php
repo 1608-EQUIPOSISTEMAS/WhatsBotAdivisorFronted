@@ -12,8 +12,6 @@ try {
     $configuraciones = [];
     $error_message = "Error al obtener configuraciones: " . $e->getMessage();
 }
-
-require_once 'conexion/whatsapp_proxy.php';
 ?>
 
 <!DOCTYPE html>
