@@ -1,11 +1,21 @@
-# Usar imagen oficial de PHP con Apache
-FROM php:8.1-apache
+FROM ubuntu:22.04
 
-# Instalar extensiones de PHP necesarias (ajusta según tu proyecto)
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Evitar preguntas durante la instalación
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Actualizar e instalar dependencias
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    php8.1 \
+    php8.1-mysql \
+    php8.1-mysqli \
+    php8.1-pdo \
+    libapache2-mod-php8.1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Habilitar mod_rewrite para Apache
 RUN a2enmod rewrite
+RUN a2enmod php8.1
 
 # Establecer el directorio de trabajo
 WORKDIR /var/www/html
@@ -26,8 +36,8 @@ RUN echo '<Directory /var/www/html>\n\
 
 RUN a2enconf project
 
-# Exponer el puerto 80 (Render usará el puerto que especifiques)
+# Exponer el puerto 80
 EXPOSE 80
 
 # Comando para iniciar Apache
-CMD ["apache2-foreground"]
+CMD ["apache2ctl", "-D", "FOREGROUND"]
