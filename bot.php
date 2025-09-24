@@ -12,6 +12,8 @@ try {
     $configuraciones = [];
     $error_message = "Error al obtener configuraciones: " . $e->getMessage();
 }
+
+require_once 'conexion/whatsapp_proxy.php';
 ?>
 
 <!DOCTYPE html>
@@ -483,9 +485,10 @@ try {
               
               console.log('Iniciando WhatsApp...');
 
-              const response = await fetch('http://34.30.42.255:3000/start-whatsapp', {
+              const response = await fetch('whatsapp_proxy.php?action=start', {
                   method: 'POST'
               });
+
               
               const result = await response.json();
               console.log('Respuesta del servidor:', result);
@@ -510,7 +513,8 @@ try {
           if (!checkingQR) return;
           
           try {
-              const response = await fetch('http://34.30.42.255:3000/get-qr');
+              const response = await fetch('whatsapp_proxy.php?action=status');
+
               const data = await response.json();
               
               console.log('Estado actual:', data);
@@ -559,7 +563,7 @@ try {
           try {
               checkingQR = false;
 
-              const response = await fetch('http://34.30.42.255:3000/stop-whatsapp', {
+              const response = await fetch('whatsapp_proxy.php?action=stop', {
                   method: 'POST'
               });
               
