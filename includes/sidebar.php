@@ -52,10 +52,10 @@
               </a>
               <div class="collapse" id="auth">
                 <ul class="nav flex-column sub-menu">
-                  <li class="nav-item"> <a class="nav-link" href=""> Black </a></li>
-                  <li class="nav-item"> <a class="nav-link" href=""> Gold </a></li>
-                  <li class="nav-item"> <a class="nav-link" href=""> Platinum </a></li>
-                  <li class="nav-item"> <a class="nav-link" href=""> Plus </a></li>
+                  <li class="nav-item"> <a class="nav-link" href="black.php"> Black </a></li>
+                  <li class="nav-item"> <a class="nav-link" href="gold.php"> Gold </a></li>
+                  <li class="nav-item"> <a class="nav-link" href="platinum.php"> Platinum </a></li>
+                  <li class="nav-item"> <a class="nav-link" href="plus.php"> Plus </a></li>
                 </ul>
               </div>
             </li>
