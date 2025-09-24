@@ -483,7 +483,7 @@ try {
               
               console.log('Iniciando WhatsApp...');
 
-              const response = await fetch('whatsapp_proxy.php?action=start', {
+              const response = await fetch('conexion/whatsapp_proxy.php?action=start', {
                   method: 'POST'
               });
 
