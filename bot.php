@@ -397,419 +397,182 @@ try {
     
     <!-- Cargar QRCode library de manera síncrona -->
     <script>
+      // Variable global para verificar carga
+      let qrLibraryLoaded = false;
+      let checkingQR = false;
 
-// Configuración dinámica de URLs
-const CONFIG = {
-    baseUrl: 'https://whatsbotadivisor.onrender.com',
-};
+      // Cargar QRCode library y esperar a que esté disponible
+      function loadQRLibrary() {
+          return new Promise((resolve, reject) => {
+              if (typeof QRCode !== 'undefined') {
+                  qrLibraryLoaded = true;
+                  resolve();
+                  return;
+              }
 
-// Estado de la aplicación
-let appState = {
-    checkingQR: false,
-    retryCount: 0,
-    lastError: null,
-    connectionStartTime: null,
-    lastQrData: null
-};
+              const script = document.createElement('script');
+              script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+              script.onload = () => {
+                  // Usar la librería qrcode-generator
+                  window.createQRCode = function(text, container) {
+                      try {
+                          container.innerHTML = '';
+                          const qr = qrcode(0, 'M');
+                          qr.addData(text);
+                          qr.make();
+                          
+                          const div = document.createElement('div');
+                          div.innerHTML = qr.createImgTag(4, 8);
+                          container.appendChild(div);
+                          
+                          console.log('QR generado exitosamente');
+                          return true;
+                      } catch (error) {
+                          console.error('Error generando QR:', error);
+                          return false;
+                      }
+                  };
+                  
+                  qrLibraryLoaded = true;
+                  resolve();
+              };
+              script.onerror = () => {
+                  reject(new Error('Failed to load QR library'));
+              };
+              document.head.appendChild(script);
+          });
+      }
 
-// Utilidad para hacer requests con timeout
-async function fetchWithTimeout(url, options = {}, timeout = CONFIG.timeoutMs) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    
-    try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal
-        });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        throw error;
-    }
-}
+      // Función para generar QR
+      function generateQRCode(container, qrData) {
+          if (qrLibraryLoaded && window.createQRCode) {
+              const success = window.createQRCode(qrData, container);
+              if (!success) {
+                  showTextQR(container, qrData);
+              }
+          } else {
+              showTextQR(container, qrData);
+          }
+      }
 
-// Función mejorada para cargar librería QR
-function loadQRLibrary() {
-    return new Promise((resolve) => {
-        // Verificar si ya está cargada
-        if (typeof qrcode !== 'undefined') {
-            window.qrLibraryLoaded = true;
-            resolve(true);
-            return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-        script.async = true;
-        script.onload = () => {
-            window.qrLibraryLoaded = true;
-            
-            // Definir función global para crear QR
-            window.createQRCode = function(text, container) {
-                try {
-                    container.innerHTML = '';
-                    const qr = qrcode(0, 'M');
-                    qr.addData(text);
-                    qr.make();
-                    
-                    const div = document.createElement('div');
-                    div.innerHTML = qr.createImgTag(5, 10);
-                    container.appendChild(div);
-                    
-                    return true;
-                } catch (error) {
-                    console.error('Error generando QR:', error);
-                    return false;
-                }
-            };
-            
-            resolve(true);
-        };
-        script.onerror = () => {
-            console.warn('QR library failed to load, using fallback');
-            window.qrLibraryLoaded = false;
-            resolve(false);
-        };
-        document.head.appendChild(script);
-        
-        // Timeout para no esperar indefinidamente
-        setTimeout(() => resolve(false), 5000);
-    });
-}
+      // Mostrar QR como texto (fallback)
+      function showTextQR(container, qrData) {
+          container.innerHTML = `
+              <div class="alert alert-info">
+                  <p><strong>Código QR (copia este texto para generar el QR manualmente):</strong></p>
+                  <textarea class="form-control" rows="4" readonly style="font-size: 10px;">${qrData}</textarea>
+                  <small class="text-muted mt-2 d-block">Usa una app generadora de QR para convertir este texto en imagen</small>
+              </div>`;
+      }
 
-// Función optimizada para generar QR con fallback a servicio online
-function generateQRCode(container, qrData) {
-    if (!container || !qrData) return;
-    
-    // Evitar regenerar el mismo QR
-    if (qrData === appState.lastQrData) return;
-    appState.lastQrData = qrData;
-    
-    try {
-        // Intentar usar la librería local si está disponible
-        if (window.qrLibraryLoaded && window.createQRCode) {
-            const success = window.createQRCode(qrData, container);
-            if (success) {
-                console.log('QR generado con librería local');
-                return;
-            }
-        }
-    } catch (error) {
-        console.error('Error con librería local:', error);
-    }
-    
-    // Fallback: Usar servicio de QR online (más rápido en Render)
-    container.innerHTML = `
-        <div class="qr-container">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}" 
-                 alt="QR Code" 
-                 class="img-fluid"
-                 style="max-width: 100%; height: auto; border: 2px solid #28a745; padding: 10px; background: white;">
-            <p class="text-muted mt-3">
-                <i class="mdi mdi-qrcode-scan"></i> Escanea este código con WhatsApp
-            </p>
-        </div>
-    `;
-    console.log('QR generado con servicio online');
-}
+      // Cargar librería al iniciar
+      document.addEventListener('DOMContentLoaded', function() {
+          loadQRLibrary().catch(error => {
+              console.warn('QR library failed to load:', error);
+          });
+      });
 
-// Función para mostrar estado visual
-function updateStatusIndicator(status, message) {
-    // Actualizar botón principal
-    const startBtn = document.getElementById('startWhatsAppBtn');
-    if (startBtn) {
-        switch(status) {
-            case 'connecting':
-                startBtn.innerHTML = '<i class="mdi mdi-loading mdi-spin mr-2"></i>Conectando...';
-                startBtn.disabled = true;
-                break;
-            case 'connected':
-                startBtn.innerHTML = '<i class="mdi mdi-whatsapp mr-2"></i>WhatsApp Conectado';
-                startBtn.classList.remove('btn-success');
-                startBtn.classList.add('btn-outline-success');
-                startBtn.disabled = false;
-                break;
-            case 'error':
-                startBtn.innerHTML = '<i class="mdi mdi-whatsapp mr-2"></i>Iniciar WhatsApp Bot';
-                startBtn.classList.add('btn-success');
-                startBtn.classList.remove('btn-outline-success');
-                startBtn.disabled = false;
-                break;
-        }
-    }
-    
-    // Mostrar mensaje temporal si hay
-    if (message) {
-        console.log(`[${status.toUpperCase()}] ${message}`);
-    }
-}
+      document.getElementById('startWhatsAppBtn').addEventListener('click', async function() {
+          try {
+              $('#whatsappModal').modal('show');
+              
+              document.getElementById('loadingQR').style.display = 'block';
+              document.getElementById('qrCode').style.display = 'none';
+              document.getElementById('whatsappReady').style.display = 'none';
+              document.getElementById('qrCode').innerHTML = '';
+              
+              console.log('Iniciando WhatsApp...');
 
-// Función principal para iniciar WhatsApp
-async function startWhatsApp() {
-    try {
-        // Resetear estado
-        appState.checkingQR = false;
-        appState.retryCount = 0;
-        appState.connectionStartTime = Date.now();
-        appState.lastQrData = null;
-        
-        // Mostrar modal
-        $('#whatsappModal').modal('show');
-        updateStatusIndicator('connecting', 'Iniciando conexión...');
-        
-        // Pre-cargar librería QR mientras se conecta
-        loadQRLibrary();
-        
-        // UI inicial
-        document.getElementById('loadingQR').style.display = 'block';
-        document.getElementById('qrCode').style.display = 'none';
-        document.getElementById('whatsappReady').style.display = 'none';
-        document.getElementById('qrCode').innerHTML = '';
-        
-        console.log(`🚀 Conectando a: ${CONFIG.baseUrl}`);
-        
-        // Iniciar servidor con timeout más largo para Render
-        const response = await fetchWithTimeout(
-            `${CONFIG.baseUrl}/start-whatsapp`,
-            { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            },
-            20000 // 20 segundos para Render
-        );
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const result = await response.json();
-        console.log('✅ Respuesta del servidor:', result);
-        
-        if (result.success) {
-            appState.checkingQR = true;
-            // Esperar un poco antes de empezar polling
-            setTimeout(() => checkForQR(), 1500);
-        } else {
-            throw new Error(result.message || 'Error desconocido');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-        appState.lastError = error.message;
-        
-        let errorMsg = 'Error al conectar';
-        if (error.name === 'AbortError') {
-            errorMsg = 'El servidor está tardando mucho. Intenta de nuevo en unos segundos.';
-        } else if (error.message.includes('Failed to fetch')) {
-            errorMsg = 'No se puede conectar al servidor. Verifica que esté activo.';
-        } else {
-            errorMsg = error.message;
-        }
-        
-        updateStatusIndicator('error', errorMsg);
-        
-        // Mostrar error en el modal
-        document.getElementById('loadingQR').innerHTML = `
-            <div class="alert alert-warning">
-                <i class="mdi mdi-alert mr-2"></i>${errorMsg}
-            </div>
-            <button class="btn btn-primary mt-2" onclick="retryConnection()">
-                <i class="mdi mdi-refresh mr-2"></i>Reintentar
-            </button>
-        `;
-        
-        // Auto-retry si es timeout
-        if (error.name === 'AbortError' && appState.retryCount < CONFIG.maxRetries) {
-            appState.retryCount++;
-            setTimeout(() => {
-                console.log(`Reintento ${appState.retryCount}/${CONFIG.maxRetries}...`);
-                startWhatsApp();
-            }, 3000);
-        }
-    }
-}
+              const response = await fetch('http://34.30.42.255:8080/start-whatsapp', {
+                  method: 'POST'
+              });
+              
+              const result = await response.json();
+              console.log('Respuesta del servidor:', result);
+              
+              if (result.success) {
+                  if (!checkingQR) {
+                      checkingQR = true;
+                      checkForQR();
+                  }
+              } else {
+                  alert('Error: ' + result.message);
+                  $('#whatsappModal').modal('hide');
+              }
+          } catch (error) {
+              alert('Error al conectar con el servidor Node.js. Asegúrate de que esté corriendo en puerto 3000.');
+              console.error(error);
+              $('#whatsappModal').modal('hide');
+          }
+      });
 
-// Función para reintentar conexión
-function retryConnection() {
-    appState.retryCount = 0;
-    startWhatsApp();
-}
+      async function checkForQR() {
+          if (!checkingQR) return;
+          
+          try {
+              const response = await fetch('http://34.30.42.255:8080/get-qr');
+              const data = await response.json();
+              
+              console.log('Estado actual:', data);
+              
+              switch(data.status) {
+                  case 'generating_qr':
+                      document.getElementById('loadingQR').style.display = 'block';
+                      document.getElementById('qrCode').style.display = 'none';
+                      document.getElementById('whatsappReady').style.display = 'none';
+                      break;
+                      
+                  case 'waiting_scan':
+                      if (data.qr) {
+                          document.getElementById('loadingQR').style.display = 'none';
+                          document.getElementById('qrCode').style.display = 'block';
+                          document.getElementById('whatsappReady').style.display = 'none';
+                          
+                          const qrContainer = document.getElementById('qrCode');
+                          generateQRCode(qrContainer, data.qr);
+                      }
+                      break;
+                      
+                  case 'connected':
+                      document.getElementById('loadingQR').style.display = 'none';
+                      document.getElementById('qrCode').style.display = 'none';
+                      document.getElementById('whatsappReady').style.display = 'block';
+                      checkingQR = false;
+                      return;
+                      
+                  case 'disconnected':
+                      document.getElementById('loadingQR').style.display = 'block';
+                      document.getElementById('qrCode').style.display = 'none';
+                      document.getElementById('whatsappReady').style.display = 'none';
+                      break;
+              }
+              
+              setTimeout(checkForQR, 2000);
+              
+          } catch (error) {
+              console.error('Error checking QR:', error);
+              setTimeout(checkForQR, 3000);
+          }
+      }
 
-// Función optimizada para verificar QR
-async function checkForQR() {
-    if (!appState.checkingQR) return;
-    
-    try {
-        const response = await fetchWithTimeout(
-            `${CONFIG.baseUrl}/get-qr`,
-            { method: 'GET' },
-            5000 // 5 segundos para polling
-        );
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Log solo si hay cambios
-        if (data.status !== window.lastStatus) {
-            console.log('📊 Estado:', data.status, data.memory ? `| RAM: ${data.memory}` : '');
-            window.lastStatus = data.status;
-        }
-        
-        switch(data.status) {
-            case 'generating_qr':
-                document.getElementById('loadingQR').style.display = 'block';
-                document.getElementById('qrCode').style.display = 'none';
-                document.getElementById('whatsappReady').style.display = 'none';
-                document.getElementById('loadingQR').innerHTML = `
-                    <div class="spinner-border text-success" role="status"></div>
-                    <p class="mt-2">Generando código QR...</p>
-                    <small class="text-muted">Tiempo: ${Math.round((Date.now() - appState.connectionStartTime) / 1000)}s</small>
-                `;
-                break;
-                
-            case 'waiting_scan':
-                if (data.qr) {
-                    document.getElementById('loadingQR').style.display = 'none';
-                    document.getElementById('qrCode').style.display = 'block';
-                    document.getElementById('whatsappReady').style.display = 'none';
-                    
-                    const qrContainer = document.getElementById('qrCode');
-                    generateQRCode(qrContainer, data.qr);
-                }
-                break;
-                
-            case 'connected':
-                document.getElementById('loadingQR').style.display = 'none';
-                document.getElementById('qrCode').style.display = 'none';
-                document.getElementById('whatsappReady').style.display = 'block';
-                
-                updateStatusIndicator('connected', '¡Conectado exitosamente!');
-                appState.checkingQR = false;
-                
-                // Auto-cerrar modal después de 3 segundos
-                setTimeout(() => {
-                    $('#whatsappModal').modal('hide');
-                }, 3000);
-                return;
-                
-            case 'disconnected':
-                document.getElementById('loadingQR').style.display = 'block';
-                document.getElementById('loadingQR').innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="mdi mdi-information mr-2"></i>
-                        WhatsApp desconectado. Iniciando reconexión...
-                    </div>
-                `;
-                document.getElementById('qrCode').style.display = 'none';
-                document.getElementById('whatsappReady').style.display = 'none';
-                break;
-        }
-        
-        // Resetear contador si todo va bien
-        if (data.status !== 'disconnected') {
-            appState.retryCount = 0;
-        }
-        
-        // Polling adaptativo - más lento cuando está esperando scan
-        const nextInterval = data.status === 'waiting_scan' ? 4000 : CONFIG.pollInterval;
-        setTimeout(checkForQR, nextInterval);
-        
-    } catch (error) {
-        console.error('Error checking QR:', error);
-        
-        // Manejar errores de red con reintentos
-        if (appState.retryCount < CONFIG.maxRetries) {
-            appState.retryCount++;
-            console.log(`Reconectando... (${appState.retryCount}/${CONFIG.maxRetries})`);
-            setTimeout(checkForQR, 5000);
-        } else {
-            updateStatusIndicator('error', 'Conexión perdida');
-            appState.checkingQR = false;
-            
-            document.getElementById('loadingQR').innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="mdi mdi-wifi-off mr-2"></i>
-                    Conexión perdida con el servidor
-                </div>
-                <button class="btn btn-primary mt-2" onclick="retryConnection()">
-                    <i class="mdi mdi-refresh mr-2"></i>Reintentar
-                </button>
-            `;
-        }
-    }
-}
+      document.getElementById('stopWhatsAppBtn').addEventListener('click', async function() {
+          try {
+              checkingQR = false;
 
-// Función para detener WhatsApp
-async function stopWhatsApp() {
-    try {
-        appState.checkingQR = false;
-        
-        await fetchWithTimeout(
-            `${CONFIG.baseUrl}/stop-whatsapp`,
-            { method: 'POST' },
-            5000
-        );
-        
-        updateStatusIndicator('error', 'WhatsApp detenido');
-        $('#whatsappModal').modal('hide');
-        
-    } catch (error) {
-        console.error('Error stopping bot:', error);
-        $('#whatsappModal').modal('hide');
-    }
-}
+              const response = await fetch('http://34.30.42.255:8080/stop-whatsapp', {
+                  method: 'POST'
+              });
+              
+              $('#whatsappModal').modal('hide');
+          } catch (error) {
+              console.error('Error stopping bot:', error);
+              $('#whatsappModal').modal('hide');
+          }
+      });
 
-// Event Listeners cuando el DOM está listo
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 Configuración: ', CONFIG);
-    
-    // Pre-cargar librería QR
-    loadQRLibrary().then(loaded => {
-        console.log('📚 Librería QR:', loaded ? 'Cargada' : 'Usando fallback');
-    });
-    
-    // Verificar estado inicial del servidor
-    fetchWithTimeout(`${CONFIG.baseUrl}/health`, {}, 3000)
-        .then(res => res.json())
-        .then(data => {
-            console.log('✅ Servidor activo:', data);
-            if (data.whatsappStatus === 'connected') {
-                updateStatusIndicator('connected', 'Ya conectado');
-            }
-        })
-        .catch(err => {
-            console.warn('⚠️ Servidor no responde:', err.message);
-            console.log('💡 Asegúrate de que el servidor Node.js esté corriendo');
-        });
-    
-    // Botón iniciar
-    const startBtn = document.getElementById('startWhatsAppBtn');
-    if (startBtn) {
-        startBtn.addEventListener('click', startWhatsApp);
-    }
-    
-    // Botón detener  
-    const stopBtn = document.getElementById('stopWhatsAppBtn');
-    if (stopBtn) {
-        stopBtn.addEventListener('click', stopWhatsApp);
-    }
-    
-    // Limpiar al cerrar modal
-    $('#whatsappModal').on('hidden.bs.modal', function () {
-        appState.checkingQR = false;
-        appState.connectionStartTime = null;
-        appState.lastQrData = null;
-    });
-    
-    // Hacer funciones globales para debug
-    window.appState = appState;
-    window.CONFIG = CONFIG;
-});
+      $('#whatsappModal').on('hidden.bs.modal', function () {
+          checkingQR = false;
+      });
     </script>
   </body>
 </html>
