@@ -3,7 +3,7 @@ $host = "maglev.proxy.rlwy.net";
 $port = 12663;
 $dbname = "railway";
 $user = "root";
-$password = "SkJAJjOTcAsEXpljmzLvlWPqYXdWgRGl"; // Copia la que te da Railway
+$password = "SkJAJjOTcAsEXpljmzLvlWPqYXdWgRGl";
 
 try {
     $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";

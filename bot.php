@@ -1,4 +1,5 @@
 <?php
+session_start();
 // Incluir la conexión a la base de datos
 require_once 'conexion/conexion.php';
 
