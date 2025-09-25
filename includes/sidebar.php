@@ -71,7 +71,7 @@ function tieneRol($rol) {
         <?php endif; ?>
 
         <!-- CONECTAR BOT -->
-        <?php if(tienePermiso('conectar') || tienePermiso('bot') || tienePermiso('all')): ?>
+        <?php if(tienePermiso('members') || tienePermiso('all')): ?>
         <li class="nav-item">
             <a class="nav-link" href="bot.php">
                 <span class="icon-bg"><i class="mdi mdi-link-variant menu-icon"></i></span>
