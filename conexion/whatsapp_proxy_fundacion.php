@@ -3,7 +3,7 @@ header('Content-Type: application/json');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
 // URL base del servidor Node.js
-$nodeServerUrl = 'http://34.30.42.255:3001';
+$nodeServerUrl = 'http://34.30.42.255:3002';
 
 // Función para realizar peticiones HTTP
 function makeHttpRequest($url, $method = 'GET', $data = null) {

@@ -102,18 +102,22 @@ if(isset($_POST['acceder'])){
                         case 'admin':
                             $_SESSION['mensaje_bienvenida'] = '¡Bienvenido Administrador!';
                             break;
-                        case 'operador':
-                            $_SESSION['mensaje_bienvenida'] = '¡Bienvenido Operador!';
+                        case 'fundacion':
+                            $_SESSION['mensaje_bienvenida'] = '¡Bienvenido Fundador!';
                             break;
-                        case 'consulta':
-                            $_SESSION['mensaje_bienvenida'] = '¡Bienvenido Consultor!';
+                        case 'comcercial':
+                            $_SESSION['mensaje_bienvenida'] = '¡Bienvenido Comercial!';
                             break;
                         default:
                             $_SESSION['mensaje_bienvenida'] = '¡Bienvenido al sistema!';
                     }
                     
                     // Redireccionar al sistema
-                    header('Location: bot.php');
+                    if ($usuario['rol_nombre'] === 'fundacion') {
+                        header('Location: bot2.php');
+                    } else {
+                        header('Location: bot.php');
+                    }
                     exit();
                     
                 } else {

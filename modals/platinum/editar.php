@@ -270,7 +270,7 @@
                                 class="form-control-minimal" 
                                 id="member-nombre" 
                                 name="nombre" 
-                                placeholder="Ej: Plan Premium Black"
+                                placeholder="Ej: Plan Premium Platinum"
                                 required
                             >
                         </div>

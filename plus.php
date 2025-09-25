@@ -7,7 +7,7 @@ require_once 'conexion/conexion.php';
 
 // Obtener los datos de la tabla members (solo id)
 try {
-    $sql = "SELECT id, nombre, ruta_post, beneficio, ruta_pdf, precio FROM members where id = 1";
+    $sql = "SELECT id, nombre, ruta_post, beneficio, ruta_pdf, precio FROM members where id = 4";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -557,7 +557,7 @@ try {
         </div>
     </div>
 
-    <?php include 'modals/black/editar.php'; ?>
+    <?php include 'modals/plus/editar.php'; ?>
 
     <!-- Scripts -->
     <script src="assets/vendors/js/vendor.bundle.base.js"></script>

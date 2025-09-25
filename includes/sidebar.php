@@ -1,13 +1,4 @@
 <?php
-// ============================================
-// FUNCIONES HELPER PARA VERIFICAR PERMISOS
-// ============================================
-
-/**
- * Verifica si el usuario tiene un permiso específico
- * @param string $permiso - Nombre del permiso a verificar
- * @return bool
- */
 function tienePermiso($permiso) {
     if (!isset($_SESSION['permisos_asignados'])) {
         return false;
@@ -89,6 +80,22 @@ function tieneRol($rol) {
         </li>
         <?php endif; ?>
 
+        <!-- FUNDACIÓN - Solo si tiene permiso de fundación -->
+        <?php if(tienePermiso('fundacion')): ?>
+        <li class="nav-item">
+            <a class="nav-link" href="bot2.php">
+                <span class="icon-bg"><i class="mdi mdi-link-variant menu-icon"></i></span>
+                <span class="menu-title">Conectar</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="fundacion.php">
+                <span class="icon-bg"><i class="mdi mdi-heart menu-icon"></i></span>
+                <span class="menu-title">Fundación</span>
+            </a>
+        </li>
+        <?php endif; ?>
+
         <!-- MEMBERS - Dropdown -->
         <?php if(tienePermiso('members') || tienePermiso('all')): ?>
         <li class="nav-item">
@@ -107,16 +114,6 @@ function tieneRol($rol) {
                     <?php endif; ?>
                 </ul>
             </div>
-        </li>
-        <?php endif; ?>
-
-        <!-- FUNDACIÓN - Solo si tiene permiso de fundación -->
-        <?php if(tienePermiso('fundacion') || tienePermiso('all')): ?>
-        <li class="nav-item">
-            <a class="nav-link" href="fundacion.php">
-                <span class="icon-bg"><i class="mdi mdi-heart menu-icon"></i></span>
-                <span class="menu-title">Fundación</span>
-            </a>
         </li>
         <?php endif; ?>
 
