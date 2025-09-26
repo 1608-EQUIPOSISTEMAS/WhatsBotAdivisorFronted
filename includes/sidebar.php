@@ -85,7 +85,13 @@ function tieneRol($rol) {
         <li class="nav-item">
             <a class="nav-link" href="bot2.php">
                 <span class="icon-bg"><i class="mdi mdi-link-variant menu-icon"></i></span>
-                <span class="menu-title">Conectar</span>
+                <span class="menu-title">Primera Linea</span>
+            </a>
+        </li>
+                <li class="nav-item">
+            <a class="nav-link" href="bot3.php">
+                <span class="icon-bg"><i class="mdi mdi-link-variant menu-icon"></i></span>
+                <span class="menu-title">Segunda Linea</span>
             </a>
         </li>
         <li class="nav-item">
@@ -120,10 +126,19 @@ function tieneRol($rol) {
         <!-- ONLINE - Solo si tiene permiso online -->
         <?php if(tienePermiso('online') || tienePermiso('all')): ?>
         <li class="nav-item">
-            <a class="nav-link" href="online.php">
-                <span class="icon-bg"><i class="mdi mdi-wifi menu-icon"></i></span>
-                <span class="menu-title">Online</span>
+            <a class="nav-link" data-toggle="collapse" href="#online" aria-expanded="false" aria-controls="online">
+            <span class="icon-bg"><i class="mdi mdi-wifi menu-icon"></i></span>
+            <span class="menu-title">Online</span>
+            <i class="menu-arrow"></i>
             </a>
+            <div class="collapse" id="online">
+            <ul class="nav flex-column sub-menu">
+                <li class="nav-item"><a class="nav-link" href="asd.php">Black</a></li>
+                <li class="nav-item"><a class="nav-link" href="asd.php">Gold</a></li>
+                <li class="nav-item"><a class="nav-link" href="asdsd.php">Platinum</a></li>
+                <li class="nav-item"><a class="nav-link" href="asdsa.php">Plus</a></li>
+            </ul>
+            </div>
         </li>
         <?php endif; ?>
 

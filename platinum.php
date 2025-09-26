@@ -1,405 +1,258 @@
 <?php
 session_start();
 
-
 // Incluir la conexión a la base de datos
 require_once 'conexion/conexion.php';
 
-// Obtener los datos de la tabla members (solo id)
+/**
+ * Función para convertir texto con formato WhatsApp a HTML.
+ * Soporta: *negrita*, _cursiva_, ~tachado~ y ```monospace```.
+ * También protege contra inyección de código (XSS).
+ */
+function formatWhatsappText($text) {
+    // 1. Escapar cualquier HTML para seguridad.
+    $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+
+    // 2. Convertir los formatos de WhatsApp a etiquetas HTML.
+    $text = preg_replace('/\*([^\*]+)\*/', '<b>$1</b>', $text); // Negrita
+    $text = preg_replace('/\_([^_]+)\_/', '<i>$1</i>', $text);   // Cursiva
+    $text = preg_replace('/\~([^\~]+)\~/', '<s>$1</s>', $text); // Tachado
+    $text = preg_replace('/```([^`]+)```/', '<code>$1</code>', $text); // Monospace
+
+    // 3. Convertir saltos de línea a <br> para párrafos.
+    $text = nl2br($text);
+
+    return $text;
+}
+
+
+// --- Obtener los datos del plan (hardcoded a id = 1) ---
 try {
-    $sql = "SELECT id, nombre, ruta_post, beneficio, ruta_pdf, precio FROM members where id = 3";
+    $sql = "SELECT id, nombre, ruta_post, beneficio, ruta_pdf, precio FROM members WHERE id = 3 LIMIT 1";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
-    $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $member = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $nombreplan = htmlspecialchars($members[0]['nombre']);
+    $nombreplan = $member ? htmlspecialchars($member['nombre']) : 'Plan no encontrado';
+    
+    // --- [MEJORA UX] Procesar beneficios para mostrarlos como lista ---
+    $benefits_list = [];
+    if ($member && !empty($member['beneficio'])) {
+        $benefits_list = array_filter(array_map('trim', explode("\n", $member['beneficio'])));
+    }
+
 } catch (PDOException $e) {
-    $members = [];
-    $error_message = "Error al obtener members: " . $e->getMessage();
+    $member = null;
+    $error_message = "Error al obtener los datos del plan: " . $e->getMessage();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Connect Plus - <?php echo isset($nombreplan) ? $nombreplan : 'Plan'; ?></title>
+    <title><?php echo $nombreplan; ?></title>
     
-    <!-- CSS Dependencies -->
     <link rel="stylesheet" href="assets/vendors/mdi/css/materialdesignicons.min.css">
-    <link rel="stylesheet" href="assets/vendors/flag-icon-css/css/flag-icon.min.css">
     <link rel="stylesheet" href="assets/vendors/css/vendor.bundle.base.css">
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="shortcut icon" href="assets/images/favicon.png" />
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.min.css" rel="stylesheet">
     
-    <!-- Minimalist Custom Styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
-        * {
-            box-sizing: border-box;
+        :root {
+            --font-family: 'Inter', sans-serif;
+            --bg-main: #F4F7FE;
+            --bg-card: #FFFFFF;
+            --text-primary: #1E293B;
+            --text-secondary: #64748B;
+            --border-color: #E2E8F0;
+            --color-primary: #4F46E5;
+            --color-primary-light: #C7D2FE;
+            --color-success: #10B981;
+            --border-radius: 16px;
+            --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -2px rgb(0 0 0 / 0.07);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         body {
-            background-color: #fafafa;
-            color: #2c3e50;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-main);
+            background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .content-wrapper {
-            padding: 2rem;
-            max-width: 1200px;
+            padding: 2.5rem;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        /* Simple Header */
-        .page-header {
-            margin-bottom: 3rem;
-        }
-
-        .page-title {
-            font-size: 2rem;
-            font-weight: 300;
-            color: #2c3e50;
-            margin: 0;
-            letter-spacing: -0.02em;
-        }
-
-        .page-subtitle {
-            color: #7f8c8d;
-            font-size: 1rem;
-            margin-top: 0.5rem;
-            font-weight: 400;
-        }
-
-        /* Clean breadcrumb */
-        .breadcrumb-simple {
-            font-size: 0.9rem;
-            color: #95a5a6;
-            margin-top: 1rem;
-        }
-
-        .breadcrumb-simple a {
-            color: #3498db;
-            text-decoration: none;
-        }
-
-        .breadcrumb-simple a:hover {
-            text-decoration: underline;
-        }
-
-        /* Main Card Container */
-        .plan-container {
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #e8e8e8;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-
-        /* Plan Header - Minimal */
-        .plan-header {
-            padding: 2rem;
-            border-bottom: 1px solid #f0f0f0;
-            text-align: center;
-        }
-
-        .plan-name {
-            font-size: 2.2rem;
-            font-weight: 200;
-            color: #2c3e50;
-            margin: 0;
-            letter-spacing: -0.02em;
-        }
-
-        .plan-id-badge {
-            display: inline-block;
-            background: #ecf0f1;
-            color: #7f8c8d;
-            padding: 0.3rem 0.8rem;
-            border-radius: 15px;
-            font-size: 0.85rem;
-            margin-top: 0.8rem;
-            font-weight: 500;
-        }
-
-        /* Information Grid - Minimal */
-        .info-section {
-            padding: 2rem;
-        }
-
-        .info-grid {
+        .plan-layout {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: 2fr 1fr;
             gap: 2rem;
+            align-items: flex-start;
         }
 
-        .info-item {
+        .plan-main-content {
             display: flex;
             flex-direction: column;
-            gap: 0.8rem;
-        }
-
-        .info-label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #7f8c8d;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .info-label i {
-            font-size: 1rem;
-            color: #bdc3c7;
-        }
-
-        .info-content {
-            font-size: 1rem;
-            color: #2c3e50;
-            line-height: 1.6;
-            background: #f9f9f9;
-            padding: 1rem;
-            border-radius: 4px;
-            border-left: 3px solid #e0e0e0;
-        }
-
-        .info-content.code {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Consolas', monospace;
-            font-size: 0.9rem;
-            color: #34495e;
-            background: #f8f8f8;
-            border-left-color: #95a5a6;
-        }
-
-        /* File Components */
-        .file-path {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Consolas', monospace;
-            font-size: 0.85rem;
-            color: #7f8c8d;
-            background: #f5f5f5;
-            padding: 0.5rem 0.75rem;
-            border-radius: 3px;
-            margin-bottom: 1rem;
-            border: 1px solid #e8e8e8;
-        }
-
-        .file-preview {
-            margin-top: 1rem;
-        }
-
-        .image-preview {
-            max-width: 100%;
-            max-height: 200px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 1px solid #e8e8e8;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            transition: transform 0.2s ease;
-        }
-
-        .image-preview:hover {
-            transform: scale(1.02);
-            cursor: pointer;
-        }
-
-        .file-error {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #e74c3c;
-            background: #fdf2f2;
-            padding: 1rem;
-            border-radius: 4px;
-            border: 1px solid #f5b7b1;
-            font-size: 0.9rem;
-        }
-
-        .file-error i {
-            font-size: 1.2rem;
-        }
-
-        .file-actions {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1rem;
-        }
-
-        .file-action-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            border: 1px solid #e8e8e8;
-            background: white;
-        }
-
-        .file-action-btn:hover {
-            text-decoration: none;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .view-btn {
-            color: #3498db;
-            border-color: #3498db;
-        }
-
-        .view-btn:hover {
-            background: #3498db;
-            color: white;
-        }
-
-        .download-btn {
-            color: #27ae60;
-            border-color: #27ae60;
-        }
-
-        .download-btn:hover {
-            background: #27ae60;
-            color: white;
-        }
-
-        /* Action Footer */
-        .action-footer {
-            padding: 1.5rem 2rem;
-            background: #fcfcfc;
-            border-top: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .stats-row {
-            display: flex;
             gap: 2rem;
         }
 
-        .stat {
-            text-align: left;
+        .plan-sidebar-assets {
+            position: sticky;
+            top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
         }
-
-        .stat-value {
-            font-size: 1.1rem;
+        
+        .plan-card {
+            background: var(--bg-card);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+        .plan-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-4px);
+        }
+        .plan-card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .plan-card-header h3 {
+            margin: 0;
+            font-size: 1.125rem;
             font-weight: 600;
-            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .plan-card-body {
+            padding: 1.5rem;
         }
 
-        .stat-label {
-            font-size: 0.8rem;
-            color: #95a5a6;
-            margin-top: 0.2rem;
+        /* --- ESTILOS DEL HERO MÁS COMPACTO --- */
+        .plan-hero {
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            background: linear-gradient(45deg, #ffffffff, #ffffffff);
+            border: 1px solid var(--border-color);
+        }
+        .plan-hero h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+        }
+        .plan-hero .price {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin: 0 0 1.5rem 0;
         }
 
-        /* Clean Button */
-        .btn-minimal {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 0.7rem 1.5rem;
-            border-radius: 4px;
-            font-size: 0.95rem;
+        /* --- LISTA DE BENEFICIOS CON ESTILOS PARA CÓDIGO --- */
+        .benefits-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .benefits-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
+            font-size: 1rem;
             font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
+            line-height: 1.6;
+        }
+        .benefits-list li i {
+            color: var(--color-success);
+            font-size: 1.4rem;
+            margin-top: 2px;
+        }
+        /* Estilo para el texto monospace (```) */
+        .benefits-list code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .asset-preview {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+        .asset-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .file-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
+            font-family: var(--font-family);
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
         }
-
-        .btn-minimal:hover {
-            background: #2980b9;
+        .btn-primary {
+            background-color: var(--color-primary);
             color: white;
         }
-
-        .btn-minimal:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        .btn-primary:hover {
+            background-color: #4338CA;
+            color: white;
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
+            transform: translateY(-2px);
         }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #e8e8e8;
+        .btn-secondary {
+            background: #F1F5F9;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
-
-        .empty-state i {
-            font-size: 3rem;
-            color: #bdc3c7;
-            margin-bottom: 1rem;
+        .btn-secondary:hover {
+            background: #E2E8F0;
         }
-
-        .empty-state h3 {
-            font-weight: 400;
-            color: #7f8c8d;
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-state p {
-            color: #95a5a6;
-            margin-bottom: 2rem;
-        }
-
-        /* Error Alert - Minimal */
-        .alert-minimal {
-            background: #fdf2f2;
-            border: 1px solid #f5b7b1;
-            color: #c0392b;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 2rem;
-            font-size: 0.95rem;
-        }
-
-        .alert-minimal i {
-            margin-right: 0.5rem;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .content-wrapper {
-                padding: 1rem;
-            }
-
-            .plan-name {
-                font-size: 1.8rem;
-            }
-
-            .info-grid {
+        
+        @media (max-width: 1024px) {
+            .plan-layout {
                 grid-template-columns: 1fr;
-                gap: 1.5rem;
             }
-
-            .action-footer {
-                flex-direction: column;
-                gap: 1.5rem;
-                align-items: stretch;
+            .plan-sidebar-assets {
+                position: static;
             }
-
-            .stats-row {
-                justify-content: center;
-            }
-        }
-
-        /* SweetAlert Customization */
-        .swal2-popup {
-            border-radius: 8px;
-            font-family: inherit;
-        }
-
-        .swal2-title {
-            font-weight: 500;
-            color: #2c3e50;
         }
     </style>
 </head>
@@ -409,157 +262,104 @@ try {
         <div class="container-fluid page-body-wrapper">
             <?php include 'includes/sidebar.php'; ?>
             
-            <div class="main-panel">
+            <main class="main-panel">
                 <div class="content-wrapper" style="background: none;">
                     
-                    <!-- Simple Header -->
-                    <div class="page-header">
-                        <h1 class="page-title">Gestión de Planes</h1>
-                        <div class="breadcrumb-simple">
-                            <a href="#">Dashboard</a> / <a href="#">Planes</a> / Plan Actual
-                        </div>
-                    </div>
+                    <?php if ($member): ?>
+                        <div class="plan-layout">
+                            <div class="plan-main-content">
+                                <section class="plan-hero">
+                                    <div class="plan-card-header" style="padding: 0; padding-bottom: 1rem;">
+                                    <h3>
+                                        <i class="mdi mdi-cash-multiple" style="color: #10B981;"></i>
+                                        PRECIO DEL <?php echo htmlspecialchars($member['nombre']); ?>
+                                    </h3>
+                                    </div>
 
-                    <!-- Error Message -->
-                    <?php if (isset($error_message)): ?>
-                        <div class="alert-minimal">
-                            <i class="mdi mdi-alert-circle"></i>
-                            <strong>Error:</strong> <?php echo htmlspecialchars($error_message); ?>
-                        </div>
-                    <?php endif; ?>
+                                    <p class="price" style="padding-top: 1rem;"><?php echo formatWhatsappText($member['precio']); ?></p>
+                                    <button class="btn btn-primary" data-toggle="modal" data-target="#editarModal"
+                                        data-id="<?= htmlspecialchars($member['id']) ?>"
+                                        data-nombre="<?= htmlspecialchars($member['nombre']) ?>"
+                                        data-precio="<?= htmlspecialchars($member['precio']) ?>"
+                                        data-ruta-post="<?= htmlspecialchars($member['ruta_post']) ?>"
+                                        data-beneficio="<?= htmlspecialchars($member['beneficio']) ?>"
+                                        data-ruta-pdf="<?= htmlspecialchars($member['ruta_pdf']) ?>">
+                                        <i class="mdi mdi-pencil-outline"></i>
+                                        Gestionar Plan
+                                    </button>
+                                    <button class="btn btn-primary" data-toggle="modal" data-target="#editarModalopciones"
+                                        data-id="<?= htmlspecialchars($member['id']) ?>">
+                                        <i class="mdi mdi-pencil-outline"></i>
+                                        Gestionar Opciones
+                                    </button>
+                                    <button class="btn btn-primary" data-toggle="modal" data-target="#editarModal"
+                                        data-id="<?= htmlspecialchars($member['id']) ?>">
+                                        <i class="mdi mdi-pencil-outline"></i>
+                                        Gestionar Respuestas
+                                    </button>
+                                </section>
 
-                    <!-- Main Content -->
-                    <?php if (!empty($members)): ?>
-                        <?php $member = $members[0]; ?>
-                        
-                        <div class="plan-container">
-                            <!-- Plan Header -->
-                            <div class="plan-header">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                  <h2 class="plan-name" style="margin: 0;"><?php echo htmlspecialchars($member['nombre']); ?></h2>
-                                  <span class="plan-id-badge" style="display:none;">ID: <?php echo htmlspecialchars($member['id']); ?></span>
-                                  <button 
-                                    class="btn-minimal"
-                                    data-toggle="modal"
-                                    data-target="#editarModal"
-                                    data-id="<?php echo htmlspecialchars($member['id']); ?>"
-                                    data-nombre="<?php echo htmlspecialchars($member['nombre']); ?>"
-                                    data-precio="<?php echo htmlspecialchars($member['precio']); ?>"
-                                    data-ruta-post="<?php echo htmlspecialchars($member['ruta_post']); ?>"
-                                    data-beneficio="<?php echo htmlspecialchars($member['beneficio']); ?>"
-                                    data-ruta-pdf="<?php echo htmlspecialchars($member['ruta_pdf']); ?>"
-                                    style="margin-left: auto;"
-                                  >
-                                    <i class="mdi mdi-pencil"></i>
-                                    Editar Plan
-                                  </button>
-                                </div>
+                                <section class="plan-card">
+                                    <div class="plan-card-header">
+                                        <h3><i class="mdi mdi-star-circle-outline" style="color: #FBBF24;"></i>Beneficios Incluidos</h3>
+                                    </div>
+                                    <div class="plan-card-body">
+                                        <?php if (!empty($benefits_list)): ?>
+                                            <ul class="benefits-list">
+                                                <?php foreach ($benefits_list as $benefit): ?>
+                                                    <li>
+                                                        <i class="mdi mdi-check-circle-outline"></i>
+                                                        <span><?php echo formatWhatsappText($benefit); ?></span>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php else: ?>
+                                            <p class="text-secondary">No hay beneficios detallados para este plan.</p>
+                                        <?php endif; ?>
+                                    </div>
+                                </section>
                             </div>
 
-                            <!-- Information Section -->
-                            <div class="info-section">
-                                <div class="info-grid">
-                                    
-                                    <!-- Benefits -->
-                                    <div class="info-item">
-                                        <div class="info-label">
-                                            <i class="mdi mdi-star-outline"></i>
-                                            Beneficios
-                                        </div>
-                                        <div class="info-content">
-                                            <?php echo nl2br(htmlspecialchars($member['beneficio'])); ?>
+                            <aside class="plan-sidebar-assets">
+                                <section class="plan-card">
+                                    <div class="plan-card-header">
+                                        <h3><i class="mdi mdi-image-outline"></i>Imagen Promocional</h3>
+                                    </div>
+                                    <div class="plan-card-body">
+                                        <div class="asset-preview">
+                                            <img src="<?php echo htmlspecialchars($member['ruta_post']); ?>" alt="Vista previa del plan" loading="lazy">
                                         </div>
                                     </div>
-                                    <div class="info-item">
-                                        <div class="info-label">
-                                            <i class="mdi mdi-currency-usd"></i>
-                                            precio
-                                        </div>
-                                        <div class="info-content">
-                                            <?php echo nl2br(htmlspecialchars($member['precio'])); ?>
-                                        </div>
-                                    </div>
+                                </section>
 
-                                    <!-- Image Route -->
-                                    <div class="info-item" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem;">
-                                      <!-- Imagen del Plan -->
-                                      <div>
-                                        <div class="info-label">
-                                          <i class="mdi mdi-folder-image"></i>
-                                          Imagen del Plan
-                                        </div>
-                                        <div class="info-content">
-                                          <div class="file-path"><?php echo htmlspecialchars($member['ruta_post']); ?></div>
-                                          <div class="file-preview">
-                                            <img 
-                                              src="<?php echo htmlspecialchars($member['ruta_post']); ?>" 
-                                              alt="Vista previa del plan"
-                                              class="image-preview"
-                                              loading="lazy"
-                                              onerror="this.parentElement.innerHTML='<div class=\'file-error\'><i class=\'mdi mdi-image-broken\'></i><span>Imagen no encontrada</span></div>'"
-                                            >
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <!-- Documento PDF -->
-                                      <div>
-                                        <div class="info-label">
-                                          <i class="mdi mdi-file-document-outline"></i>
-                                          Documento PDF
-                                        </div>
-                                        <div class="info-content">
-                                          <div class="file-path"><?php echo htmlspecialchars($member['ruta_pdf']); ?></div>
-                                          <div class="file-actions">
-                                            <a href="<?php echo htmlspecialchars($member['ruta_pdf']); ?>" 
-                                               target="_blank" 
-                                               class="file-action-btn view-btn"
-                                               title="Ver PDF">
-                                              <i class="mdi mdi-eye"></i>
-                                              Ver PDF
+                                <section class="plan-card">
+                                    <div class="plan-card-header">
+                                        <h3><i class="mdi mdi-file-pdf-box-outline"></i>Documento del Plan</h3>
+                                    </div>
+                                    <div class="plan-card-body">
+                                        <div class="file-actions">
+                                            <a href="<?php echo htmlspecialchars($member['ruta_pdf']); ?>" target="_blank" class="btn btn-primary">
+                                                <i class="mdi mdi-eye-outline"></i> Ver
                                             </a>
-                                            <a href="<?php echo htmlspecialchars($member['ruta_pdf']); ?>" 
-                                               download 
-                                               class="file-action-btn download-btn"
-                                               title="Descargar PDF">
-                                              <i class="mdi mdi-download"></i>
-                                              Descargar
+                                            <a href="<?php echo htmlspecialchars($member['ruta_pdf']); ?>" download class="btn btn-primary">
+                                                <i class="mdi mdi-download-outline"></i> Descargar
                                             </a>
-                                          </div>
                                         </div>
-                                      </div>
                                     </div>
-
-                                </div>
-                            </div>
-
-                            <!-- Action Footer -->
-                            <div class="action-footer">
-                            </div>
+                                </section>
+                            </aside>
                         </div>
-
                     <?php else: ?>
-                        <!-- Empty State -->
-                        <div class="empty-state">
-                            <i class="mdi mdi-package-variant-closed"></i>
-                            <h3>Plan no encontrado</h3>
-                            <p>No se encontró el plan con ID = 1 en la base de datos.</p>
-                            <button class="btn-minimal">
-                                <i class="mdi mdi-plus"></i>
-                                Crear Nuevo Plan
-                            </button>
-                        </div>
-                    <?php endif; ?>
-
+                        <?php endif; ?>
                 </div>
-                
                 <?php include 'includes/footer.php'; ?>
-            </div>
+            </main>
         </div>
     </div>
 
     <?php include 'modals/platinum/editar.php'; ?>
-
-    <!-- Scripts -->
+    <?php include 'modals/platinum/modal_opciones.php'; ?>
+    
     <script src="assets/vendors/js/vendor.bundle.base.js"></script>
     <script src="assets/js/off-canvas.js"></script>
     <script src="assets/js/hoverable-collapse.js"></script>
@@ -567,7 +367,8 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.all.min.js"></script>
     
     <script>
-        // Simple Toast Configuration
+    document.addEventListener('DOMContentLoaded', function() {
+        
         const Toast = Swal.mixin({
             toast: true,
             position: 'top-end',
@@ -576,25 +377,18 @@ try {
             timerProgressBar: true
         });
 
-        // Database error handler
         <?php if (isset($error_message)): ?>
-        document.addEventListener('DOMContentLoaded', function() {
-            Swal.fire({
-                title: 'Error de Conexión',
-                text: '<?php echo addslashes($error_message); ?>',
-                icon: 'error',
-                confirmButtonColor: '#3498db',
-                confirmButtonText: 'Entendido'
-            });
+        Swal.fire({
+            title: 'Error de Base de Datos',
+            text: '<?php echo addslashes($error_message); ?>',
+            icon: 'error',
+            confirmButtonText: 'Entendido'
         });
         <?php endif; ?>
 
-        // Modal handler
         $('#editarModal').on('show.bs.modal', function (event) {
             const button = $(event.relatedTarget);
             const modal = $(this);
-            
-            // Populate modal fields
             modal.find('#member-id').val(button.data('id'));
             modal.find('#member-nombre').val(button.data('nombre'));
             modal.find('#member-ruta-post').val(button.data('ruta-post'));
@@ -603,83 +397,59 @@ try {
             modal.find('#member-ruta-pdf').val(button.data('ruta-pdf'));
         });
 
-        // Form submission handler
-        function handleEditSubmit(event) {
+        // Event listener para el submit del formulario del modal.
+        // Asumiendo que el formulario tiene un id="editForm" y se llama a esta función en el onsubmit.
+        window.handleEditSubmit = function(event) {
             event.preventDefault();
             
             Swal.fire({
-                title: '¿Guardar cambios?',
-                text: 'Se actualizará la configuración del plan',
+                title: '¿Confirmar cambios?',
+                text: "La información del plan será actualizada.",
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#3498db',
-                cancelButtonColor: '#95a5a6',
-                confirmButtonText: 'Guardar',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, guardar',
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    // --- RECOMENDACIÓN: Aquí iría la lógica AJAX para enviar el formulario ---
+                    // Por ahora, simulamos el éxito como en el código original.
                     Swal.fire({
                         title: 'Guardando...',
+                        text: 'Por favor, espera.',
                         allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
+                        didOpen: () => Swal.showLoading()
                     });
                     
-                    // Simulate save process
                     setTimeout(() => {
+                        $('#editarModal').modal('hide');
+                        Swal.close();
                         Toast.fire({
                             icon: 'success',
-                            title: 'Cambios guardados correctamente'
+                            title: 'Plan actualizado con éxito'
+                        }).then(() => {
+                            location.reload(); // Recargar para ver los cambios
                         });
-                        
-                        $('#editarModal').modal('hide');
-                        
-                        setTimeout(() => {
-                            location.reload();
-                        }, 1000);
                     }, 1500);
                 }
             });
         }
-
-        // Image preview functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            // Image click to enlarge
-            const imagePreview = document.querySelector('.image-preview');
-            if (imagePreview) {
-                imagePreview.addEventListener('click', function() {
-                    Swal.fire({
-                        imageUrl: this.src,
-                        imageAlt: 'Vista ampliada del plan',
-                        showConfirmButton: false,
-                        showCloseButton: true,
-                        customClass: {
-                            popup: 'image-modal-popup',
-                            image: 'image-modal-content'
-                        }
-                    });
-                });
-            }
-
-            // File action button interactions
-            const actionButtons = document.querySelectorAll('.file-action-btn');
-            actionButtons.forEach(button => {
-                button.addEventListener('click', function(e) {
-                    if (this.classList.contains('view-btn')) {
-                        Toast.fire({
-                            icon: 'info',
-                            title: 'Abriendo PDF...'
-                        });
-                    } else if (this.classList.contains('download-btn')) {
-                        Toast.fire({
-                            icon: 'success',
-                            title: 'Iniciando descarga...'
-                        });
-                    }
+        
+        // Vista previa de imagen ampliada
+        const imagePreview = document.querySelector('.image-preview');
+        if (imagePreview) {
+            imagePreview.addEventListener('click', function() {
+                Swal.fire({
+                    imageUrl: this.src,
+                    imageAlt: 'Vista ampliada de la imagen del plan',
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    backdrop: `rgba(0,0,0,0.8)`
                 });
             });
-        });
+        }
+    });
     </script>
 </body>
 </html>

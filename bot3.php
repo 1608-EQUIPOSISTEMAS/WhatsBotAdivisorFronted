@@ -491,7 +491,7 @@ try {
 
         async function checkWhatsAppStatus() {
             try {
-                const response = await fetch('conexion/whatsapp_proxy_fundacion.php?action=status');
+                const response = await fetch('conexion/whatsapp_proxy_fundacion2.php?action=status');
                 const data = await response.json();
                 
                 if (data.status === 'connected') {
@@ -546,7 +546,7 @@ try {
             updateButtonState('loading', 'Iniciando...');
 
             try {
-                const response = await fetch('conexion/whatsapp_proxy_fundacion.php?action=start', {
+                const response = await fetch('conexion/whatsapp_proxy_fundacion2.php?action=start', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -607,7 +607,7 @@ try {
             try {
                 updateButtonState('loading', 'Desconectando...');
                 
-                const response = await fetch('conexion/whatsapp_proxy_fundacion.php?action=stop', {
+                const response = await fetch('conexion/whatsapp_proxy_fundacion2.php?action=stop', {
                     method: 'POST'
                 });
                 
@@ -635,7 +635,7 @@ try {
             if (!checkingQR) return;
             
             try {
-                const response = await fetch('conexion/whatsapp_proxy_fundacion.php?action=status');
+                const response = await fetch('conexion/whatsapp_proxy_fundacion2.php?action=status');
                 const data = await response.json();
                 
                 switch(data.status) {

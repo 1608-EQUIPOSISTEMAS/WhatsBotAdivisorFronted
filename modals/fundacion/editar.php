@@ -30,13 +30,13 @@
                                 <i class="mdi mdi-message-text"></i>
                                 Mensaje de Bienvenida
                             </label>
-                            <input 
-                                type="text" 
-                                class="form-control-minimal" 
+                            <textarea 
+                                class="form-control-minimal textarea-minimal" 
                                 id="bot-welcome" 
                                 name="welcome" 
+                                rows="3"
                                 placeholder="Mensaje de bienvenida del bot"
-                            >
+                            ></textarea>
                         </div>
 
                         <!-- Presentation Image -->
